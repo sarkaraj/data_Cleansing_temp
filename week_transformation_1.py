@@ -28,34 +28,42 @@ def make_date(iso_date_string):
     return iso_to_gregorian(iso_year=iso_year, iso_week=iso_week, iso_day=iso_day)
 
 
-def weeks_for_year(year, max_week_present):
-    first_week = date(year, 1, 4)
-    last_week = date(year, 12, 28)
+def weeks_for_year(year, max_week_present, min_week_present):
+    first_week = date(year, 1, 4).isocalendar()
+    last_week = date(year, 12, 28).isocalendar()
 
-    if (max_week_present < last_week.isocalendar()[1]):
-        return (first_week.isocalendar()[1], max_week_present)
+    if (first_week < min_week_present):
+        first_week = min_week_present
+        if (max_week_present < last_week):
+            last_week = max_week_present
+            return (first_week[1], last_week[1])
+        else:
+            return (first_week[1], last_week[1])
     else:
-        return (first_week.isocalendar()[1], last_week.isocalendar()[1])
+        if (max_week_present < last_week):
+            last_week = max_week_present
+            return (first_week[1], last_week[1])
+        else:
+            return (first_week[1], last_week[1])
 
 
-def get_missing_weeks(input_year, existing_weeks, max_week_present):
-    (_first_week, _total_weeks) = weeks_for_year(input_year, max_week_present)
+def get_missing_weeks(input_year, existing_weeks, max_week_present, min_week_present):
+    (_first_week, _total_weeks) = weeks_for_year(input_year, max_week_present, min_week_present)
     _weeks_list = set(range(_first_week, _total_weeks + 1))
     _existing = set(existing_weeks)
     _missing = _weeks_list - _existing
     return list(_missing)
 
 
-
-
-def get_missing_data(df_grpby_year):
+def get_missing_data(df_grpby_year, grp_min_date, grp_max_date):
     final_data_df = pd.DataFrame()
     for year, grp_dataset in df_grpby_year:
         missing_data_df_per_grp = pd.DataFrame()
         grp_dataset['week_num'] = grp_dataset['isocalendar'].map(lambda x: x[1])
         # print grp_dataset
-        max_week_present = grp_dataset.ix[grp_dataset['week_num'].argmax()].iloc[5]
-        _weeks_missed = get_missing_weeks(year, grp_dataset['week_num'], max_week_present)
+        max_week_present = grp_max_date
+        min_week_present = grp_min_date
+        _weeks_missed = get_missing_weeks(year, grp_dataset['week_num'], max_week_present, min_week_present)
         _weeks_missed_Series = pd.Series(_weeks_missed).map(str)
         d = pd.DataFrame(np.zeros((len(_weeks_missed), 2)), columns=['quantity', 'q_indep_p'])
         missing_data_df_per_grp = pd.concat([d, _weeks_missed_Series], axis=1)
@@ -87,9 +95,14 @@ def get_cmplt_missing_data(raw_data):
         group['isocalendar'] = group['date_parse'].map(lambda x: x.isocalendar())
         group['year'] = group['date_parse'].map(lambda x: x.year)
 
-        # group['week_num'] = group['isocalendar'].map(lambda x: x[1])
+        group_min_date = group.ix[group['date_parse'].argmin()].iloc[6]
+        group_max_date = group.ix[group['date_parse'].argmax()].iloc[6]
+
+        # print group_min_date
+        # print group_max_date
+
         raw_data_grp = group[['matnr', 'quantity', 'q_indep_p', 'isocalendar', 'year']].groupby(['year'], as_index=False)
-        missing_data = get_missing_data(raw_data_grp)
+        missing_data = get_missing_data(raw_data_grp, group_min_date, group_max_date)
         missing_data['matnr'] = str(name[1])
         missing_data['customernumber'] = str(name[0])
         # print missing_data
