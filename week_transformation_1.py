@@ -35,7 +35,7 @@ def get_missing_data(df_grpby_year):
         missing_data_df_per_grp = pd.concat([d, _weeks_missed_Series], axis=1)
         missing_data_df_per_grp.columns = ['quantity', 'q_indep_p', 'week_num']
         missing_data_df_per_grp['year'] = str(year)
-        missing_data_df_per_grp['isocalendar'] = (missing_data_df_per_grp['year'] + "-" + missing_data_df_per_grp['week_num'] + "-" + "3").map(lambda x: make_date(x).isocalendar())
+        missing_data_df_per_grp['isocalendar'] = (missing_data_df_per_grp['year'] + "-" + missing_data_df_per_grp['week_num'] + "-" + "1").map(lambda x: make_date(x).isocalendar())
 
         final_data_df = pd.concat([final_data_df, missing_data_df_per_grp], axis=0)
 
@@ -73,10 +73,9 @@ def get_cmplt_missing_data(raw_data):
 
     return final_data_df_1
 
+def transform_raw_data(raw_data):
 
-# print weeks_for_year(2015)
-# print get_missing_weeks(2015)
-# print type(get_missing_weeks(2015))
+    return None
 
 raw_data = pd.read_csv("./skywaymart_90.txt", sep="\t", header=None,
                        names=['customernumber', 'matnr', 'date', 'quantity', 'q_indep_p'])
