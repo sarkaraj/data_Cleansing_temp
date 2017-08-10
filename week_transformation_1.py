@@ -57,8 +57,9 @@ def get_missing_weeks(input_year, existing_weeks, max_week_present, min_week_pre
 
 def get_missing_data(df_grpby_year, grp_min_date, grp_max_date):
     final_data_df = pd.DataFrame()
-    for year, grp_dataset in df_grpby_year:
+    for year, group in df_grpby_year:
         missing_data_df_per_grp = pd.DataFrame()
+        grp_dataset = group.copy()
         grp_dataset['week_num'] = grp_dataset['isocalendar'].map(lambda x: x[1])
         # print grp_dataset
         max_week_present = grp_max_date
@@ -74,7 +75,8 @@ def get_missing_data(df_grpby_year, grp_min_date, grp_max_date):
             lambda x: make_date(x).isocalendar())
 
         final_data_df = pd.concat([final_data_df, missing_data_df_per_grp], axis=0)
-
+    # print "printing final_data_df"
+    # print final_data_df
     return final_data_df
 
 
@@ -89,45 +91,56 @@ def get_cmplt_missing_data(raw_data):
     for name, group in raw_data_grp:
         # print name[0]
 
-        final_data_df_2 = pd.DataFrame()
-        group['date'] = group['date'].map(str)
-        group['date_parse'] = pd.to_datetime(group['date'])
-        group['isocalendar'] = group['date_parse'].map(lambda x: x.isocalendar())
-        group['year'] = group['date_parse'].map(lambda x: x.year)
+        final_df_2 = group.copy()
+        # final_df_2['date'] = final_df_2['date'].map(str)
+        # final_df_2['date_parse'] = pd.to_datetime(final_df_2['date'])
+        # final_df_2['isocalendar'] = final_df_2['date_parse'].map(lambda x: x.isocalendar())
+        final_df_2['year'] = final_df_2['date_parse'].map(lambda x: x.year)
 
-        group_min_date = group.ix[group['date_parse'].argmin()].iloc[6]
-        group_max_date = group.ix[group['date_parse'].argmax()].iloc[6]
+        group_min_date = final_df_2.ix[final_df_2['date_parse'].argmin()].iloc[6]
+        group_max_date = final_df_2.ix[final_df_2['date_parse'].argmax()].iloc[6]
 
         # print group_min_date
         # print group_max_date
-
-        raw_data_grp = group[['matnr', 'quantity', 'q_indep_p', 'isocalendar', 'year']].groupby(['year'], as_index=False)
-        missing_data = get_missing_data(raw_data_grp, group_min_date, group_max_date)
-        missing_data['matnr'] = str(name[1])
-        missing_data['customernumber'] = str(name[0])
+        final_df_2.drop(['date', 'date_parse'], axis=1)
+        raw_data_grp_year = final_df_2[
+            ['customernumber', 'matnr', 'quantity', 'q_indep_p', 'isocalendar', 'year']].groupby(['year'],
+                                                                                                 as_index=False)
+        missing_data = get_missing_data(raw_data_grp_year, group_min_date, group_max_date)
+        missing_data['matnr'] = name[1]
+        missing_data['customernumber'] = name[0]
         # print missing_data
         # print "******************************************************************"
-        final_data_df_2 = pd.concat([final_data_df_2, missing_data], axis=0)
+        # final_data_df_2 = pd.concat([final_data_df_2, missing_data], axis=0)
         # print final_data_df_2
         # print "##################################################################"
-        final_data_df_1 = pd.concat([final_data_df_1, final_data_df_2], axis=0)
+        final_data_df_1 = pd.concat([final_data_df_1, missing_data], axis=0)
 
+    # print "##################################################################"
     final_data_df_1 = final_data_df_1.drop(['week_num', 'year'], axis=1)
+    # print final_data_df_1
 
     return final_data_df_1
 
 def transform_raw_data(raw_data):
     result_df = pd.DataFrame()
     raw_data_copy = raw_data.copy()
+    raw_data_copy['customernumber'] = raw_data_copy['customernumber'].map(str)
     raw_data_copy['date'] = raw_data_copy['date'].map(str)
     raw_data_copy['date_parse'] = pd.to_datetime(raw_data_copy['date'])
     raw_data_copy['isocalendar'] = raw_data_copy['date_parse'].map(lambda x: x.isocalendar())
-    raw_data_copy = raw_data_copy.drop(['date', 'date_parse'], axis=1)
 
-    missing_Data = get_cmplt_missing_data(raw_data)
+    missing_Data = get_cmplt_missing_data(raw_data_copy)
+    # print "missing data"
+    # print missing_Data
+
+    raw_data_copy = raw_data_copy.drop(['date', 'date_parse'], axis=1)
+    # print "raw_data_copy"
+    # print raw_data_copy
 
     result_df = pd.concat([raw_data_copy, missing_Data], axis=0)
-
+    # print "result_df"
+    # print result_df
     return result_df
 
 
@@ -139,6 +152,7 @@ def weekly_aggregate(data):
     data_grp['dt_week'] = data_grp['year_weekNum'].map(lambda x: iso_to_gregorian(int(x[0]), int(x[1]), 4))
 
     data_grp = data_grp.drop(['year_weekNum'], axis=1)
+    # print "data_grp"
     # print data_grp
     return data_grp
 
@@ -146,9 +160,15 @@ def weekly_aggregate(data):
 def get_weekly_aggregate(inputfile, outputfile, input_sep="\t", output_sep=","):
     raw_data = pd.read_csv(inputfile, sep=input_sep, header=None,
                            names=['customernumber', 'matnr', 'date', 'quantity', 'q_indep_p'])
+    # print raw_data
     dataset_cmplt = transform_raw_data(raw_data)
+    # print dataset_cmplt
     result = weekly_aggregate(dataset_cmplt)
-    result.to_csv(outputfile, sep=output_sep, index=False)
+    # result.to_csv(outputfile, sep=output_sep, index=False)
+    return result
 
 
-get_weekly_aggregate(inputfile="./skywaymart_90.txt", outputfile="./skywaymart_90_agg.txt")
+data = get_weekly_aggregate(inputfile="./skywaymart_90.txt", outputfile="./skywaymart_90_agg.txt")
+print data
+print data['matnr'].unique()
+print data['customernumber'].unique()
