@@ -6,6 +6,7 @@ import pandas as pd
 
 import datetime
 
+
 def iso_year_start(iso_year):
     "The gregorian calendar date of the first day of the given ISO year"
     fourth_jan = datetime.date(iso_year, 1, 4)
@@ -177,7 +178,7 @@ def get_missing_data_weekly(df_grpby_year, grp_min_date, grp_max_date):
         missing_data_df_per_grp.columns = ['quantity', 'q_indep_p', 'week_num']
         missing_data_df_per_grp['year'] = str(year)
         missing_data_df_per_grp['isocalendar'] = (
-        missing_data_df_per_grp['year'] + "," + missing_data_df_per_grp['week_num'] + "," + "4").map(
+            missing_data_df_per_grp['year'] + "," + missing_data_df_per_grp['week_num'] + "," + "4").map(
             lambda x: make_date(x).isocalendar())
 
         final_data_df = pd.concat([final_data_df, missing_data_df_per_grp], axis=0)
@@ -233,7 +234,6 @@ def get_cmplt_missing_data_weekly(raw_data):
     raw_data_grp = raw_data.groupby(['customernumber', 'matnr'], as_index=False)
     final_data_df_1 = pd.DataFrame()
     for name, group in raw_data_grp:
-
         final_df_2 = group.copy()
         final_df_2['year'] = final_df_2['date_parse'].map(lambda x: x.year)
 
@@ -321,7 +321,6 @@ def transform_raw_data_monthly(raw_data):
     return result_df
 
 
-
 def weekly_aggregate(data):
     """
     Aggregate data - weekly level
@@ -354,40 +353,44 @@ def monthly_aggregate(data):
     return data_grp
 
 
-def get_weekly_aggregate(inputfile, input_sep="\t"):
+def get_weekly_aggregate(inputDF, input_sep="\t"):
     """
     Consolidated function for weekly aggregation
     :param inputfile: input file path
     :param input_sep: input file separators
     :return:
     """
-    raw_data = pd.read_csv(inputfile, sep=input_sep, header=None,
-                           names=['customernumber', 'matnr', 'date', 'quantity', 'q_indep_p'])
+    # raw_data = pd.read_csv(inputfile, sep=input_sep, header=None,
+    #                        names=['customernumber', 'matnr', 'date', 'quantity', 'q_indep_p'])
 
-    dataset_cmplt = transform_raw_data_weekly(raw_data)
+    dataset_cmplt = transform_raw_data_weekly(inputDF)
     result = weekly_aggregate(dataset_cmplt)
     return result
 
 
-def get_monthly_aggregate(inputfile, input_sep="\t"):
+def get_monthly_aggregate(inputDF, input_sep="\t"):
     """
     Consolidated function for weekly aggregation
     :param inputfile: input file path
     :param input_sep: input file separators
     :return:
     """
-    raw_data = pd.read_csv(inputfile, sep=input_sep, header=None,
-                           names=['customernumber', 'matnr', 'date', 'quantity', 'q_indep_p'])
-    dataset_cmplt = transform_raw_data_monthly(raw_data)
+    # raw_data = pd.read_csv(inputfile, sep=input_sep, header=None,
+    #                        names=['customernumber', 'matnr', 'date', 'quantity', 'q_indep_p'])
+    dataset_cmplt = transform_raw_data_monthly(inputDF)
 
     result = monthly_aggregate(dataset_cmplt)
     return result
 
 
-data_month = get_monthly_aggregate(inputfile="./skywaymart_90.txt")
+raw_data = pd.read_csv("./skywaymart_90.txt", sep="\t", header=None,
+                       names=['customernumber', 'matnr', 'date', 'quantity', 'q_indep_p'])
+data_month = get_weekly_aggregate(raw_data)
+
 print data_month
-print data_month['matnr'].unique()
-print data_month['customernumber'].unique()
+# print data_month
+# print data_month['matnr'].unique()
+# print data_month['customernumber'].unique()
 #
 # data_week = get_weekly_aggregate(inputfile="./skywaymart_90.txt")
 # print data_week

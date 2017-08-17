@@ -4,50 +4,51 @@
 # #
 # # conf = SparkConf().setMaster("local[*]").setAppName("temp")
 # # sc = SparkContext(conf=conf)
+#
+# from subprocess import call
+#
+#
+# def run_command(command):
+#     command_array = command.split(" ")
+#     call(command_array)
+#
+#
+# def validate_virtual_env():
+#     packages = ["virtualenv", "pandas"]
+#
+#     for package in packages:
+#         try:
+#             import package
+#             # print "package imported successfully"
+#         except ImportError, e:
+#             run_command("pip install " + package)
+#
+#
+# def make_dirs(location):
+#     dirs = location.split("/")[1:]
+#     current_loc = "/"
+#
+#     for dir in dirs:
+#         try:
+#             command = "mkdir " + current_loc + dir
+#             run_command(command)
+#         except OSError as exception:
+#             print exception
+#
+#
+# def initiate_venv(location="/tmp/cona_pyspark_venv/"):
+#     # Creating virtual environments
+#     current_project_venv_environ = location + "cona_suggestive_order"
+#     venv_init_command = "virtualenv " + current_project_venv_environ
+#     run_command(venv_init_command)
+#
+#     # Activate virtual environment
+#     venv_actvt_command = "source " + current_project_venv_environ + "/bin/activate"
+#     run_command(venv_actvt_command)
+#
+#     # Install required libraries
 # #
-# # from subprocess import call
-# #
-# #
-# # def run_command(command):
-# #     command_array = command.split(" ")
-# #     call(command_array)
-# #
-# #
-# # def validate_virtual_env():
-# #     packages = ["virtualenv"]
-# #
-# #     for package in packages:
-# #         try:
-# #             import package
-# #         except ImportError, e:
-# #             run_command("pip install " + package)
-# #
-# #
-# # def make_dirs(location):
-# #     dirs = location.split("/")[1:]
-# #     current_loc = "/"
-# #
-# #     for dir in dirs:
-# #         try:
-# #             command = "mkdir " + current_loc + dir
-# #             run_command(command)
-# #         except OSError as exception:
-# #             print exception
-# #
-# #
-# # def initiate_venv(location="/tmp/cona_pyspark_venv/"):
-# #     # Creating virtual environments
-# #     current_project_venv_environ = location + "cona_suggestive_order"
-# #     venv_init_command = "virtualenv " + current_project_venv_environ
-# #     run_command(venv_init_command)
-# #
-# #     # Activate virtual environment
-# #     venv_actvt_command = "source " + current_project_venv_environ + "/bin/activate"
-# #     run_command(venv_actvt_command)
-# #
-# #     # Install required libraries
-# #
-# # validate_virtual_env()
+# validate_virtual_env()
 # #
 # # blah = data_grp.limit(1)
 # # blah.cache()
@@ -72,10 +73,3 @@
 # #
 # #
 # # # temp_df.toPandas()
-#
-# from date_aggregator_transformers import iso_to_gregorian
-# from datetime import date
-#
-# print iso_to_gregorian(2017,5,5).month
-# print date(2017,4,3)
-# print date((2017,4,3)).isocalendar()
