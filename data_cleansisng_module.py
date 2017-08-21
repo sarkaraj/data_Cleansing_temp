@@ -1,5 +1,17 @@
 from date_aggregator_transformers import *
 
+
+class weekObject(object):
+    def __init__(self, array_of_dates):
+        self.week = array_of_dates[0][1]
+        self.year = array_of_dates[0][0]
+        self.days = tuple(set([iso_date[2] for iso_date in array_of_dates]))
+
+    def getKVPair(self):
+        tuple_obj = (self.week, self.year, self.days)
+        return tuple_obj
+
+
 def assign_delivery_date(x):
     if(x >=1 and x<=3):
         return 2
@@ -12,69 +24,47 @@ def detect_days_in_week(week_array):
     return tuple(set(week_array))
 
 
-def detect_freq(df_date, freq='auto'):
-    # create ISO (year, week, day_of_week) dateformat from timestamp object: df_date
-    isoCalendar = df_date.map(lambda x: x.isocalendar())
-    # get week number from ISO date
-    _weekNum = isoCalendar.map(lambda x: x[1])
-    # get day of week from ISO date
-    _day = isoCalendar.map(lambda x: str(x[2]))
-    # create temp dataframe
-    temp_df = pd.concat([_weekNum, _day], axis=1)
-    temp_df.columns = ['weekNum', 'day_of_week']
-    # group by week of year, aggregate over count and unique elements
-    temp_df_grp_1 = temp_df.groupby(['weekNum'], as_index=False).agg(['count', 'unique'])
-    # get delivery cycles throughout whole time period, return tuples to make hashable elems
-    temp_df_grp_1['cycle'] = temp_df_grp_1['day_of_week']['unique'].map(lambda x: detect_days_in_week(x))
-    # make another temp dataframe
-    temp_df_2 = pd.concat([temp_df_grp_1['day_of_week']['count'], temp_df_grp_1['cycle']], axis=1)
-    # group by cycles
-    temp_df_2_grp = temp_df_2.groupby(['cycle'], as_index=False).sum()
+def transform_2(data):
+    iso_date = data.iloc[:, 3]
+    week_num = iso_date.map(lambda x: x[1])
+    year_ = iso_date.map(lambda x: x[0])
+    iso_date = pd.concat([iso_date, week_num, year_], axis=1)
+    iso_date.columns = ['iso_date', 'week_num', 'year']
+    # print iso_date
+    week_kv = iso_date.groupby(['week_num', 'year'], as_index=False).apply(
+        lambda tdf: pd.Series(dict([[vv, tdf[vv].unique().tolist()] for vv in tdf if vv not in ['week_num', 'year']])))
+    week_kv['week_day_KV'] = week_kv['iso_date'].map(lambda date_array: weekObject(date_array).getKVPair())
+    week_kv['freq_key'] = week_kv['week_day_KV'].map(lambda x: x[2])
+    # print week_kv
+    agg_freq = week_kv.groupby(['freq_key'], as_index=False)[['iso_date']].agg('count')
+    agg_freq = agg_freq.sort_values(['iso_date'], ascending=False)
+    agg_freq.columns = ['freq_key', 'count']
+    print agg_freq
+    print week_kv['freq_key'].unique()
+    return True
 
-    if (freq == 'auto'):
-        # get cycle with max occurrences,
-        max_cycle = temp_df_2_grp.ix[temp_df_2_grp['count'].argmax()].iloc[0]
-        print type(max_cycle)
-    else:
-        return None
 
-        # return None
+def transformation_raw_data(raw_data):
+    raw_data['date'] = raw_data['date'].map(str)
+    raw_data['date_parse'] = pd.to_datetime(raw_data['date'])
+    raw_data['isocalendar'] = raw_data['date_parse'].map(lambda x: x.isocalendar())
+    raw_data = raw_data.drop(['date', 'date_parse'], axis=1)
+    # raw_data['sanity_check'] = raw_data['isocalendar'].map(lambda x: iso_to_gregorian(x[0], x[1], x[2]))
+    raw_data.columns = ['matnr', 'quantity', 'q_indep_p', 'iso_date']
+    return raw_data
+
 
 
 raw_data = pd.read_csv("./skywaymart_90.txt", sep="\t", header=None,
                        names=['customernumber', 'matnr', 'date', 'quantity', 'q_indep_p'])[
     ['matnr', 'date', 'quantity', 'q_indep_p']]
 
-raw_data = raw_data[raw_data['matnr'] == 103029]
+single_pdt = raw_data.loc[(raw_data['matnr'] == 103029), ['matnr', 'date', 'quantity', 'q_indep_p']]
 
-# print raw_data
+temp = transformation_raw_data(single_pdt)
+print transform_2(temp)
 
-def transformation_1(raw_data):
-    raw_data['date'] = raw_data['date'].astype(str)
-    raw_data['date_parse'] = pd.to_datetime(raw_data['date'])
-    raw_data['isocalendar'] = raw_data['date_parse'].map(lambda x: x.isocalendar())
-    raw_data['weekday'] = raw_data['isocalendar'].map(lambda x: x[2])
-    raw_data['weekday_modified'] = raw_data['weekday'].map(lambda x: assign_delivery_date(x))
-
-    raw_data_grp = raw_data.sort_values(by='date_parse').copy().groupby(['isocalendar', 'weekday_modified'],
-                                                                        as_index=False)  # .sum()
-
-    for name, group_raw_data in raw_data_grp:
-        group_raw_data['year'] = group_raw_data['isocalendar'].map(lambda x: x[0])
-        group_raw_data['week_num'] = group_raw_data['isocalendar'].map(lambda x: x[1])
-        group_raw_data['fabri_date_iso'] = group_raw_data['year'].map(str) + "," + group_raw_data[
-            'week_num'].map(str) + "," + group_raw_data['weekday_modified'].map(str)
-        group_raw_data['fabri_date'] = group_raw_data['fabri_date_iso'].map(lambda x: make_date(x))
-
-        print name
-        print group_raw_data
-
-        # return group_raw_data
-
-
-raw_data = transformation_1(raw_data)
-print raw_data
-detect_freq(raw_data['fabri_date'])
+# detect_freq(raw_data['fabri_date'])
 
 # date_frm_isocal = raw_data_sorted_grp
 

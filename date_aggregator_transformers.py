@@ -383,11 +383,10 @@ def get_monthly_aggregate(inputfile, input_sep="\t"):
     result = monthly_aggregate(dataset_cmplt)
     return result
 
-
-data_month = get_monthly_aggregate(inputfile="./skywaymart_90.txt")
-print data_month
-print data_month['matnr'].unique()
-print data_month['customernumber'].unique()
+# data_month = get_monthly_aggregate(inputfile="./skywaymart_90.txt")
+# print data_month
+# print data_month['matnr'].unique()
+# print data_month['customernumber'].unique()
 #
 # data_week = get_weekly_aggregate(inputfile="./skywaymart_90.txt")
 # print data_week
